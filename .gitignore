@@ -1,2 +1,7 @@
 /target
 /dist
+/ACTIVE_QUEUE.md
+/AUTONOMOUS_EXECUTION.md
+/STATE.md
+/rtasks.md
+/release-local.ps1
