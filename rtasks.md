@@ -348,14 +348,14 @@ El exe queda corriendo en background/tray.
 
 13. System tray
 
-V1 puede tener tray mínimo:
+V1 incluye tray mínimo:
 
 RTasks
 - Open Quick Add
 - Open Panel
 - Quit
 
-Pero si eso te demora, no lo hagas en V1. Primero hotkeys.
+El ícono se genera en runtime con una `R` simple.
 
 14. Implementation Plan
 Fase 0 — Skeleton
@@ -472,6 +472,8 @@ posición correcta
 focus automático
 tema dark
 fuente linda
+tray mínimo
+script local de release/package
 animación NO
 settings NO
 cloud NO
@@ -536,6 +538,8 @@ tags NO
 - [x] Registrar hotkey global `Ctrl+Spacebar` para abrir/cerrar panel.
 - [x] Asegurar que cerrar ventana no cierre la app.
 - [x] Mantener proceso corriendo en background mientras hotkeys estén activas.
+- [x] Implementar tray mínimo: Open Quick Add, Open Panel, Quit.
+- [x] Implementar script `release-local.ps1` para build release y paquete zip local.
 - [x] Validar que Quick Add funciona desde otra app.
 - [x] Validar que Panel funciona desde otra app.
 - [x] Validar que una tarea guardada persiste después de cerrar y abrir la app.
@@ -593,6 +597,8 @@ JSONL
 quick add
 panel
 hotkeys
+tray mínimo
+release zip local
 parser mínimo
 V1.1
 editar título

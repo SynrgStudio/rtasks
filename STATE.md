@@ -85,6 +85,15 @@ Implementar RTasks V1 completo según `rtasks.md`:
 - `cargo test`: OK (2026-04-25 18:28), 8 tests passed.
 - `cargo check`: OK (2026-04-25 18:28).
 
+2026-04-25 later update:
+
+- Project renamed to RTasks everywhere.
+- Added tray menu: Open Quick Add, Open Panel, Quit.
+- Added generated runtime tray icon with a simple `R` glyph.
+- Adapted `release-local.ps1` for RTasks portable release zips.
+- Ran `cargo fmt`, `cargo test`, `cargo check`, and `cargo build --release` successfully.
+- Verified `release-local.ps1 -Version 0.1.0 -PackageOnly -SkipValidation` creates `dist\\rtasks-v0.1.0-windows-x64.zip`.
+
 Validación manual reportada por usuario:
 
 - Quick Add abre, guarda, parsea fechas y permite carga continua.

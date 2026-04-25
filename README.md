@@ -15,6 +15,7 @@ V1 MVP is functional.
 
 - Quick Add: global hotkey, fast capture, optional status/priority, minimal date parsing.
 - Panel: global hotkey, active task list, multiselect, state advance, delete selected.
+- Tray: Open Quick Add, Open Panel, Quit.
 - Storage: local JSONL file.
 
 ## Shortcuts
@@ -134,12 +135,42 @@ pub struct Task {
 cargo run
 ```
 
+RTasks starts with the Quick Add window. After closing/capturing, it stays available through global hotkeys and the tray menu.
+
+## Tray
+
+The tray menu includes:
+
+- Open Quick Add
+- Open Panel
+- Quit
+
+The tray icon is generated at runtime and uses a simple `R` glyph.
+
 ## Validate
 
 ```bash
+cargo fmt --check
 cargo test
 cargo check
 ```
+
+## Local release package
+
+Create a portable Windows release zip:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\release-local.ps1 -Version 0.1.0 -PackageOnly
+```
+
+The script runs formatting/tests/check/build unless `-SkipValidation` is passed, then creates:
+
+```text
+dist\rtasks-v<version>-windows-x64.zip
+dist\SHA256SUMS.txt
+```
+
+The zip includes `rtasks.exe`, `README.md`, `rtasks.md`, and per-file checksums.
 
 ## Scope constraints
 

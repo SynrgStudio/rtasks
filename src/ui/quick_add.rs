@@ -1,4 +1,6 @@
-use eframe::egui::{self, Color32, FontFamily, FontId, Frame, Key, Margin, RichText, Stroke, TextStyle};
+use eframe::egui::{
+    self, Color32, FontFamily, FontId, Frame, Key, Margin, RichText, Stroke, TextStyle,
+};
 
 use crate::{
     app::{AppMode, RTasksApp},
@@ -88,7 +90,9 @@ fn apply_command_palette_style(ctx: &egui::Context) {
     style.visuals.widgets.inactive.fg_stroke.color = FOREGROUND;
     style.visuals.widgets.active.fg_stroke.color = SELECTED_FOREGROUND;
     style.visuals.widgets.hovered.fg_stroke.color = SELECTED_FOREGROUND;
-    style.text_styles.insert(TextStyle::Body, mono_font(TEXT_SIZE));
+    style
+        .text_styles
+        .insert(TextStyle::Body, mono_font(TEXT_SIZE));
     style
         .text_styles
         .insert(TextStyle::Monospace, mono_font(TEXT_SIZE));

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use global_hotkey::{
-    hotkey::{Code, HotKey, Modifiers},
     GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState,
+    hotkey::{Code, HotKey, Modifiers},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

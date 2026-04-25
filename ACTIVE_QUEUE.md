@@ -333,3 +333,8 @@ Notes:
 - Iteración final aplicada: panel estilo rmenu con cards, multiselección, Alt+Click para avance de estado grupal y Del para borrar selección.
 - Documentación actualizada: `rtasks.md`, `README.md`, `STATE.md`.
 - Validación final: `cargo test` OK, `cargo check` OK.
+- Post-cierre: proyecto renombrado a RTasks.
+- Post-cierre: agregado tray mínimo con Open Quick Add, Open Panel, Quit.
+- Post-cierre: agregado ícono runtime con glifo `R`.
+- Post-cierre: `release-local.ps1` adaptado para paquete portable RTasks.
+- Post-cierre: `cargo fmt`, `cargo test`, `cargo check`, `cargo build --release` OK.

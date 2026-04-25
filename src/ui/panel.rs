@@ -1,4 +1,6 @@
-use eframe::egui::{self, Color32, FontFamily, FontId, Frame, Key, Margin, RichText, Stroke, TextStyle};
+use eframe::egui::{
+    self, Color32, FontFamily, FontId, Frame, Key, Margin, RichText, Stroke, TextStyle,
+};
 
 use crate::{
     app::{AppMode, RTasksApp},
@@ -114,7 +116,11 @@ fn show_section(
 
             if visible_indices.is_empty() {
                 ui.add_space(2.0);
-                ui.label(RichText::new("Sin tareas").font(mono_font(HINT_SIZE)).color(MUTED));
+                ui.label(
+                    RichText::new("Sin tareas")
+                        .font(mono_font(HINT_SIZE))
+                        .color(MUTED),
+                );
                 return;
             }
 
@@ -133,9 +139,21 @@ fn show_task_row(
     clicked_task_index: &mut Option<usize>,
 ) {
     let selected = app.is_task_selected(index);
-    let fill = if selected { SELECTED_BACKGROUND } else { ROW_BACKGROUND };
-    let text_color = if selected { SELECTED_FOREGROUND } else { FOREGROUND };
-    let border_color = if selected { SELECTED_FOREGROUND } else { ROW_BORDER };
+    let fill = if selected {
+        SELECTED_BACKGROUND
+    } else {
+        ROW_BACKGROUND
+    };
+    let text_color = if selected {
+        SELECTED_FOREGROUND
+    } else {
+        FOREGROUND
+    };
+    let border_color = if selected {
+        SELECTED_FOREGROUND
+    } else {
+        ROW_BORDER
+    };
 
     let frame_output = Frame::none()
         .fill(fill)
@@ -241,7 +259,9 @@ fn apply_panel_style(ctx: &egui::Context) {
     style.visuals.widgets.inactive.fg_stroke.color = FOREGROUND;
     style.visuals.widgets.active.fg_stroke.color = SELECTED_FOREGROUND;
     style.visuals.widgets.hovered.fg_stroke.color = SELECTED_FOREGROUND;
-    style.text_styles.insert(TextStyle::Body, mono_font(TEXT_SIZE));
+    style
+        .text_styles
+        .insert(TextStyle::Body, mono_font(TEXT_SIZE));
     style
         .text_styles
         .insert(TextStyle::Monospace, mono_font(TEXT_SIZE));

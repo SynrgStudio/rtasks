@@ -7,6 +7,7 @@ use crate::{
     parser::parse_task_input,
     storage,
     task::{Priority, Task, TaskSource, TaskStatus},
+    tray::{AppTray, TrayAction},
     ui::{panel, quick_add},
 };
 
@@ -20,7 +21,9 @@ pub struct RTasksApp {
     pub last_error: Option<String>,
     pub suppress_ctrl_click: bool,
     hotkeys: Option<Hotkeys>,
+    tray: Option<AppTray>,
     applied_mode: Option<AppMode>,
+    quit_requested: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +45,11 @@ impl RTasksApp {
             Err(error) => (None, Some(error.to_string())),
         };
 
+        let (tray, tray_error) = match AppTray::new() {
+            Ok(tray) => (Some(tray), None),
+            Err(error) => (None, Some(error.to_string())),
+        };
+
         Self {
             mode: AppMode::QuickAdd,
             tasks,
@@ -49,10 +57,12 @@ impl RTasksApp {
             selected_status: None,
             selected_priority: None,
             selected_task_indices: Vec::new(),
-            last_error: last_error.or(hotkey_error),
+            last_error: last_error.or(hotkey_error).or(tray_error),
             suppress_ctrl_click: false,
             hotkeys,
+            tray,
             applied_mode: None,
+            quit_requested: false,
         }
     }
 
@@ -247,9 +257,29 @@ impl RTasksApp {
         }
     }
 
+    pub fn handle_tray_actions(&mut self, ctx: &egui::Context) {
+        let Some(tray) = &self.tray else {
+            return;
+        };
+
+        for action in tray.drain_actions() {
+            match action {
+                TrayAction::OpenQuickAdd => self.open_quick_add(),
+                TrayAction::OpenPanel => {
+                    self.mode = AppMode::Panel;
+                    self.suppress_ctrl_click = false;
+                }
+                TrayAction::Quit => {
+                    self.quit_requested = true;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+            }
+        }
+    }
+
     pub fn handle_close_request(&mut self, ctx: &egui::Context) {
         let close_requested = ctx.input(|input| input.viewport().close_requested());
-        if close_requested {
+        if close_requested && !self.quit_requested {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.mode = AppMode::Hidden;
         }
@@ -369,6 +399,7 @@ impl eframe::App for RTasksApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_visuals(egui::Visuals::dark());
         self.handle_hotkeys();
+        self.handle_tray_actions(ctx);
         self.handle_close_request(ctx);
         self.apply_viewport_for_mode(ctx);
         ctx.request_repaint_after(std::time::Duration::from_millis(50));
