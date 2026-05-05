@@ -135,7 +135,29 @@ pub struct Task {
 cargo run
 ```
 
-RTasks starts with the Quick Add window. After closing/capturing, it stays available through global hotkeys and the tray menu.
+RTasks starts with the Quick Add window. After closing/capturing, it stays available through global hotkeys, direct IPC, and the tray menu.
+
+Companion/daemon mode:
+
+```bash
+rtasks.exe daemon
+```
+
+IPC command helpers:
+
+```bash
+rtasks.exe quick-add
+rtasks.exe panel
+rtasks.exe shutdown
+```
+
+The native IPC pipe is:
+
+```text
+\\.\pipe\rtasks
+```
+
+Supported IPC commands are `quick_add`, `panel`, and `shutdown`.
 
 ## Tray
 
@@ -170,7 +192,7 @@ dist\rtasks-v<version>-windows-x64.zip
 dist\SHA256SUMS.txt
 ```
 
-The zip includes `rtasks.exe`, `README.md`, `rtasks.md`, and per-file checksums.
+The zip includes `rtasks.exe`, `README.md`, and per-file checksums. GitHub releases also publish a stable `rtasks.exe` asset for companion installers.
 
 ## Scope constraints
 

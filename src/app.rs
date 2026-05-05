@@ -1,9 +1,13 @@
 use chrono::{SecondsFormat, Utc};
+use std::sync::mpsc::{self, Receiver};
+use std::thread::JoinHandle;
+
 use eframe::egui;
 use ulid::Ulid;
 
 use crate::{
     hotkeys::{HotkeyAction, Hotkeys},
+    ipc::{self, IpcCommand},
     parser::parse_task_input,
     storage,
     task::{Priority, Task, TaskSource, TaskStatus},
@@ -22,6 +26,8 @@ pub struct RTasksApp {
     pub suppress_ctrl_click: bool,
     hotkeys: Option<Hotkeys>,
     tray: Option<AppTray>,
+    ipc_receiver: Option<Receiver<IpcCommand>>,
+    _ipc_thread: Option<JoinHandle<()>>,
     applied_mode: Option<AppMode>,
     quit_requested: bool,
 }
@@ -35,6 +41,10 @@ pub enum AppMode {
 
 impl RTasksApp {
     pub fn new() -> Self {
+        Self::new_with_mode(AppMode::QuickAdd)
+    }
+
+    pub fn new_with_mode(mode: AppMode) -> Self {
         let (tasks, last_error) = match storage::load_tasks() {
             Ok(tasks) => (tasks, None),
             Err(error) => (Vec::new(), Some(error.to_string())),
@@ -50,8 +60,11 @@ impl RTasksApp {
             Err(error) => (None, Some(error.to_string())),
         };
 
+        let (ipc_sender, ipc_receiver) = mpsc::channel();
+        let ipc_thread = ipc::start_named_pipe_server(ipc_sender);
+
         Self {
-            mode: AppMode::QuickAdd,
+            mode,
             tasks,
             quick_input: String::new(),
             selected_status: None,
@@ -61,6 +74,8 @@ impl RTasksApp {
             suppress_ctrl_click: false,
             hotkeys,
             tray,
+            ipc_receiver: Some(ipc_receiver),
+            _ipc_thread: Some(ipc_thread),
             applied_mode: None,
             quit_requested: false,
         }
@@ -244,6 +259,27 @@ impl RTasksApp {
         ctx.input(|input| input.modifiers.ctrl) && !self.suppress_ctrl_click
     }
 
+    pub fn handle_ipc_commands(&mut self, ctx: &egui::Context) {
+        let Some(receiver) = &self.ipc_receiver else {
+            return;
+        };
+
+        let commands = receiver.try_iter().collect::<Vec<_>>();
+        for command in commands {
+            match command {
+                IpcCommand::QuickAdd => self.open_quick_add(),
+                IpcCommand::Panel => {
+                    self.mode = AppMode::Panel;
+                    self.suppress_ctrl_click = false;
+                }
+                IpcCommand::Shutdown => {
+                    self.quit_requested = true;
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
+            }
+        }
+    }
+
     pub fn handle_hotkeys(&mut self) {
         let Some(hotkeys) = &self.hotkeys else {
             return;
@@ -398,6 +434,7 @@ impl Default for RTasksApp {
 impl eframe::App for RTasksApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.set_visuals(egui::Visuals::dark());
+        self.handle_ipc_commands(ctx);
         self.handle_hotkeys();
         self.handle_tray_actions(ctx);
         self.handle_close_request(ctx);

@@ -1,5 +1,6 @@
 pub mod app;
 pub mod hotkeys;
+pub mod ipc;
 pub mod parser;
 pub mod storage;
 pub mod task;
