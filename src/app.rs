@@ -308,10 +308,7 @@ impl RTasksApp {
         for request in commands {
             match request.cmd {
                 IpcCommand::QuickAdd => self.open_quick_add(),
-                IpcCommand::Panel => {
-                    self.mode = AppMode::Panel;
-                    self.suppress_ctrl_click = false;
-                }
+                IpcCommand::Panel => self.toggle_panel(),
                 IpcCommand::AddTask => self.save_ipc_task(request),
                 IpcCommand::Shutdown => {
                     self.quit_requested = true;
@@ -492,14 +489,7 @@ impl eframe::App for RTasksApp {
         ctx.request_repaint_after(std::time::Duration::from_millis(50));
 
         match self.mode {
-            AppMode::Hidden => {
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading("RTasks");
-                        ui.label("Hidden. Hotkeys will open capture or panel.");
-                    });
-                });
-            }
+            AppMode::Hidden => {}
             AppMode::QuickAdd => quick_add::show(ctx, self),
             AppMode::Panel => panel::show(ctx, self),
         }
