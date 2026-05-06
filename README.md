@@ -159,7 +159,7 @@ The native IPC pipe is:
 
 Supported IPC commands are `quick_add`, `panel`, `add_task`, and `shutdown`.
 
-`daemon --no-hotkeys` starts the companion without registering standalone global hotkeys, for hosts such as rMenu that own integrated shortcuts.
+`daemon --no-hotkeys` starts the companion without registering standalone global hotkeys or a tray icon, for hosts such as rMenu that own integrated shortcuts.
 
 ## Tray
 

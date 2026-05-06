@@ -63,9 +63,13 @@ impl RTasksApp {
             (None, None)
         };
 
-        let (tray, tray_error) = match AppTray::new() {
-            Ok(tray) => (Some(tray), None),
-            Err(error) => (None, Some(error.to_string())),
+        let (tray, tray_error) = if enable_hotkeys {
+            match AppTray::new() {
+                Ok(tray) => (Some(tray), None),
+                Err(error) => (None, Some(error.to_string())),
+            }
+        } else {
+            (None, None)
         };
 
         let (ipc_sender, ipc_receiver) = mpsc::channel();
@@ -363,7 +367,7 @@ impl RTasksApp {
         }
         self.applied_mode = Some(self.mode);
 
-        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(self.mode != AppMode::Hidden));
         ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
             egui::WindowLevel::AlwaysOnTop,
         ));

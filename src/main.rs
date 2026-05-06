@@ -40,7 +40,9 @@ fn run_app(initial_mode: AppMode, enable_hotkeys: bool) -> eframe::Result<()> {
             .with_inner_size([760.0, 72.0])
             .with_decorations(false)
             .with_resizable(false)
-            .with_always_on_top(),
+            .with_always_on_top()
+            .with_taskbar(false)
+            .with_visible(initial_mode != AppMode::Hidden),
         ..Default::default()
     };
 
