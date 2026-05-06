@@ -4,6 +4,7 @@ use std::thread::JoinHandle;
 
 use eframe::egui;
 use ulid::Ulid;
+use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 
 use crate::{
     hotkeys::{HotkeyAction, Hotkeys},
@@ -367,7 +368,7 @@ impl RTasksApp {
         }
         self.applied_mode = Some(self.mode);
 
-        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(self.mode != AppMode::Hidden));
+        ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
         ctx.send_viewport_cmd(egui::ViewportCommand::WindowLevel(
             egui::WindowLevel::AlwaysOnTop,
         ));
@@ -432,7 +433,7 @@ impl RTasksApp {
 
 fn viewport_position(ctx: &egui::Context, mode: AppMode, size: egui::Vec2) -> Option<egui::Pos2> {
     let viewport = ctx.input(|input| input.viewport().clone());
-    let monitor_size = viewport.monitor_size?;
+    let monitor_size = viewport.monitor_size.unwrap_or_else(primary_screen_size);
     let side_margin = 24.0;
     let bottom_margin = 72.0;
 
@@ -446,6 +447,15 @@ fn viewport_position(ctx: &egui::Context, mode: AppMode, size: egui::Vec2) -> Op
             monitor_size.x - size.x - side_margin,
             monitor_size.y - size.y - bottom_margin,
         )),
+    }
+}
+
+fn primary_screen_size() -> egui::Vec2 {
+    unsafe {
+        egui::vec2(
+            GetSystemMetrics(SM_CXSCREEN) as f32,
+            GetSystemMetrics(SM_CYSCREEN) as f32,
+        )
     }
 }
 

@@ -42,7 +42,7 @@ fn run_app(initial_mode: AppMode, enable_hotkeys: bool) -> eframe::Result<()> {
             .with_resizable(false)
             .with_always_on_top()
             .with_taskbar(false)
-            .with_visible(initial_mode != AppMode::Hidden),
+            .with_visible(true),
         ..Default::default()
     };
 
