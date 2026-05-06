@@ -7,7 +7,7 @@ use ulid::Ulid;
 
 use crate::{
     hotkeys::{HotkeyAction, Hotkeys},
-    ipc::{self, IpcCommand},
+    ipc::{self, IpcCommand, IpcRequest},
     parser::parse_task_input,
     storage,
     task::{Priority, Task, TaskSource, TaskStatus},
@@ -26,7 +26,7 @@ pub struct RTasksApp {
     pub suppress_ctrl_click: bool,
     hotkeys: Option<Hotkeys>,
     tray: Option<AppTray>,
-    ipc_receiver: Option<Receiver<IpcCommand>>,
+    ipc_receiver: Option<Receiver<IpcRequest>>,
     _ipc_thread: Option<JoinHandle<()>>,
     applied_mode: Option<AppMode>,
     quit_requested: bool,
@@ -45,14 +45,22 @@ impl RTasksApp {
     }
 
     pub fn new_with_mode(mode: AppMode) -> Self {
+        Self::new_with_mode_and_hotkeys(mode, true)
+    }
+
+    pub fn new_with_mode_and_hotkeys(mode: AppMode, enable_hotkeys: bool) -> Self {
         let (tasks, last_error) = match storage::load_tasks() {
             Ok(tasks) => (tasks, None),
             Err(error) => (Vec::new(), Some(error.to_string())),
         };
 
-        let (hotkeys, hotkey_error) = match Hotkeys::register() {
-            Ok(hotkeys) => (Some(hotkeys), None),
-            Err(error) => (None, Some(error.to_string())),
+        let (hotkeys, hotkey_error) = if enable_hotkeys {
+            match Hotkeys::register() {
+                Ok(hotkeys) => (Some(hotkeys), None),
+                Err(error) => (None, Some(error.to_string())),
+            }
+        } else {
+            (None, None)
         };
 
         let (tray, tray_error) = match AppTray::new() {
@@ -238,6 +246,33 @@ impl RTasksApp {
         self.mode = AppMode::QuickAdd;
     }
 
+    pub fn save_ipc_task(&mut self, request: IpcRequest) {
+        let input = request.input.unwrap_or_default();
+        let parsed = parse_task_input(&input);
+        let title = parsed.title.trim();
+        if title.is_empty() {
+            return;
+        }
+
+        let now = now_timestamp();
+        let task = Task {
+            id: Ulid::new().to_string(),
+            title: title.to_owned(),
+            status: request.status,
+            priority: request.priority,
+            due: parsed.due,
+            created_at: now.clone(),
+            updated_at: now,
+            completed_at: None,
+            source: TaskSource::DesktopQuickAdd,
+        };
+
+        match storage::add_task(&mut self.tasks, task) {
+            Ok(()) => self.last_error = None,
+            Err(error) => self.last_error = Some(error.to_string()),
+        }
+    }
+
     pub fn toggle_panel(&mut self) {
         self.mode = if self.mode == AppMode::Panel {
             self.suppress_ctrl_click = false;
@@ -265,13 +300,14 @@ impl RTasksApp {
         };
 
         let commands = receiver.try_iter().collect::<Vec<_>>();
-        for command in commands {
-            match command {
+        for request in commands {
+            match request.cmd {
                 IpcCommand::QuickAdd => self.open_quick_add(),
                 IpcCommand::Panel => {
                     self.mode = AppMode::Panel;
                     self.suppress_ctrl_click = false;
                 }
+                IpcCommand::AddTask => self.save_ipc_task(request),
                 IpcCommand::Shutdown => {
                     self.quit_requested = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);

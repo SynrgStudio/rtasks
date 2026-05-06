@@ -26,12 +26,19 @@ const PIPE_BUFFER_SIZE: u32 = 4096;
 pub enum IpcCommand {
     QuickAdd,
     Panel,
+    AddTask,
     Shutdown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IpcRequest {
     pub cmd: IpcCommand,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<crate::task::TaskStatus>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<crate::task::Priority>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,7 +48,7 @@ pub enum IpcResponse {
     Error { message: String },
 }
 
-pub fn start_named_pipe_server(sender: Sender<IpcCommand>) -> JoinHandle<()> {
+pub fn start_named_pipe_server(sender: Sender<IpcRequest>) -> JoinHandle<()> {
     thread::spawn(move || run_named_pipe_server(sender))
 }
 
@@ -58,7 +65,13 @@ pub fn send_command(command: IpcCommand, timeout: Duration) -> Result<IpcRespons
 
     let pipe = OpenOptions::new().read(true).write(true).open(PIPE_PATH)?;
     let mut reader = BufReader::new(pipe);
-    let request = IpcRequest { cmd: command }.to_json_line()?;
+    let request = IpcRequest {
+        cmd: command,
+        input: None,
+        status: None,
+        priority: None,
+    }
+    .to_json_line()?;
     reader.get_mut().write_all(request.as_bytes())?;
     reader.get_mut().flush()?;
 
@@ -71,7 +84,7 @@ pub fn send_command(command: IpcCommand, timeout: Duration) -> Result<IpcRespons
     IpcResponse::from_json_line(&response_line)
 }
 
-fn run_named_pipe_server(sender: Sender<IpcCommand>) {
+fn run_named_pipe_server(sender: Sender<IpcRequest>) {
     loop {
         match create_pipe_file() {
             Ok(pipe) => {
@@ -114,16 +127,21 @@ fn create_pipe_file() -> Result<File> {
     Ok(unsafe { File::from_raw_handle(handle.0) })
 }
 
-fn handle_client(pipe: File, sender: &Sender<IpcCommand>) -> bool {
+fn handle_client(pipe: File, sender: &Sender<IpcRequest>) -> bool {
     let mut reader = BufReader::new(pipe);
     let mut line = String::new();
     let response = match reader.read_line(&mut line) {
         Ok(0) => IpcResponse::error("empty IPC request"),
         Ok(_) => match IpcRequest::from_json_line(&line) {
-            Ok(request) => match sender.send(request.cmd) {
-                Ok(()) => IpcResponse::ok(accepted_message(request.cmd)),
-                Err(error) => IpcResponse::error(format!("daemon dispatcher unavailable: {error}")),
-            },
+            Ok(request) => {
+                let command = request.cmd;
+                match sender.send(request) {
+                    Ok(()) => IpcResponse::ok(accepted_message(command)),
+                    Err(error) => {
+                        IpcResponse::error(format!("daemon dispatcher unavailable: {error}"))
+                    }
+                }
+            }
             Err(error) => IpcResponse::error(error.to_string()),
         },
         Err(error) => IpcResponse::error(format!("failed to read IPC request: {error}")),
@@ -144,6 +162,7 @@ fn accepted_message(command: IpcCommand) -> &'static str {
     match command {
         IpcCommand::QuickAdd => "quick add accepted",
         IpcCommand::Panel => "panel accepted",
+        IpcCommand::AddTask => "add task accepted",
         IpcCommand::Shutdown => "shutdown accepted",
     }
 }
@@ -192,7 +211,10 @@ mod tests {
     fn request_json_matches_protocol() {
         assert_eq!(
             (IpcRequest {
-                cmd: IpcCommand::QuickAdd
+                cmd: IpcCommand::QuickAdd,
+                input: None,
+                status: None,
+                priority: None,
             })
             .to_json_line()
             .expect("serialize"),
@@ -200,7 +222,10 @@ mod tests {
         );
         assert_eq!(
             (IpcRequest {
-                cmd: IpcCommand::Panel
+                cmd: IpcCommand::Panel,
+                input: None,
+                status: None,
+                priority: None,
             })
             .to_json_line()
             .expect("serialize"),
@@ -208,7 +233,10 @@ mod tests {
         );
         assert_eq!(
             (IpcRequest {
-                cmd: IpcCommand::Shutdown
+                cmd: IpcCommand::Shutdown,
+                input: None,
+                status: None,
+                priority: None,
             })
             .to_json_line()
             .expect("serialize"),
