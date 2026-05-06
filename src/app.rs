@@ -4,7 +4,10 @@ use std::thread::JoinHandle;
 
 use eframe::egui;
 use ulid::Ulid;
-use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetForegroundWindow, GetSystemMetrics, IsWindow, SM_CXSCREEN, SM_CYSCREEN, SetForegroundWindow,
+};
 
 use crate::{
     hotkeys::{HotkeyAction, Hotkeys},
@@ -31,6 +34,8 @@ pub struct RTasksApp {
     _ipc_thread: Option<JoinHandle<()>>,
     applied_mode: Option<AppMode>,
     quit_requested: bool,
+    previous_focus_hwnd: Option<HWND>,
+    pending_focus_restore: Option<HWND>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,6 +96,8 @@ impl RTasksApp {
             _ipc_thread: Some(ipc_thread),
             applied_mode: None,
             quit_requested: false,
+            previous_focus_hwnd: None,
+            pending_focus_restore: None,
         }
     }
 
@@ -278,14 +285,29 @@ impl RTasksApp {
         }
     }
 
+    pub fn open_panel(&mut self) {
+        let hwnd = unsafe { GetForegroundWindow() };
+        if !hwnd.0.is_null() {
+            self.previous_focus_hwnd = Some(hwnd);
+        }
+        self.mode = AppMode::Panel;
+        self.suppress_ctrl_click = false;
+    }
+
+    pub fn close_panel(&mut self) {
+        self.clear_task_selection();
+        self.suppress_ctrl_click = false;
+        self.mode = AppMode::Hidden;
+        self.pending_focus_restore = self.previous_focus_hwnd.take();
+    }
+
     pub fn toggle_panel(&mut self) {
-        self.mode = if self.mode == AppMode::Panel {
-            self.suppress_ctrl_click = false;
-            AppMode::Hidden
+        if self.mode == AppMode::Panel {
+            self.close_panel();
         } else {
+            self.open_panel();
             self.suppress_ctrl_click = true;
-            AppMode::Panel
-        };
+        }
     }
 
     pub fn update_ctrl_suppression(&mut self, ctx: &egui::Context) {
@@ -339,10 +361,7 @@ impl RTasksApp {
         for action in tray.drain_actions() {
             match action {
                 TrayAction::OpenQuickAdd => self.open_quick_add(),
-                TrayAction::OpenPanel => {
-                    self.mode = AppMode::Panel;
-                    self.suppress_ctrl_click = false;
-                }
+                TrayAction::OpenPanel => self.open_panel(),
                 TrayAction::Quit => {
                     self.quit_requested = true;
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -355,7 +374,11 @@ impl RTasksApp {
         let close_requested = ctx.input(|input| input.viewport().close_requested());
         if close_requested && !self.quit_requested {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-            self.mode = AppMode::Hidden;
+            match self.mode {
+                AppMode::Panel => self.close_panel(),
+                AppMode::QuickAdd => self.close_quick_add(),
+                AppMode::Hidden => {}
+            }
         }
     }
 
@@ -385,6 +408,22 @@ impl RTasksApp {
 
         if let Some(position) = viewport_position(ctx, self.mode, size) {
             ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(position));
+        }
+
+        if self.mode == AppMode::Hidden {
+            self.restore_pending_focus();
+        }
+    }
+
+    fn restore_pending_focus(&mut self) {
+        let Some(hwnd) = self.pending_focus_restore.take() else {
+            return;
+        };
+
+        unsafe {
+            if IsWindow(hwnd).as_bool() {
+                let _ = SetForegroundWindow(hwnd);
+            }
         }
     }
 

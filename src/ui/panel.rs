@@ -3,7 +3,7 @@ use eframe::egui::{
 };
 
 use crate::{
-    app::{AppMode, RTasksApp},
+    app::RTasksApp,
     task::{Priority, TaskStatus},
 };
 
@@ -244,8 +244,7 @@ fn handle_keyboard(ctx: &egui::Context, app: &mut RTasksApp) {
     }
 
     if close {
-        app.clear_task_selection();
-        app.mode = AppMode::Hidden;
+        app.close_panel();
     }
 }
 
@@ -313,5 +312,5 @@ fn mono_font(size: f32) -> FontId {
 }
 
 pub fn open(app: &mut RTasksApp) {
-    app.mode = AppMode::Panel;
+    app.open_panel();
 }
